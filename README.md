@@ -50,7 +50,7 @@ public:
     uint ndav;
     uint maxPreuTotal;
     uint maxPreuJug;
-    vector<vector<Player>> pos_jug;
+    vector< vector<Player> > pos_jug;
 
     Tactic(uint n1, uint n2, uint n3, uint T, uint J, const vector<Player>& players) :
         npor(1), ndef(n1), nmig(n2), ndav(n3), maxPreuTotal(T), maxPreuJug(J) {
@@ -62,8 +62,8 @@ public:
     }
 
     //Fem vector de vector de por, def, mig i dav respectivament
-    vector<vector<Player>> GetPositionedPlayers(const vector<Player>& players) {
-        vector<vector<Player>> pos_jug(3);
+    vector< vector<Player> > GetPositionedPlayers(const vector<Player>& players) {
+        vector< vector<Player> > pos_jug(3);
 
         for (const auto& player : players) {
             if (player.price <= maxPreuJug) {
