@@ -44,16 +44,16 @@ public:
 
 class Tactic {
 public:
-    uint goal;
+    uint npor;
     uint ndef;
-    uint nmid;
-    uint nstr;
+    uint nmig;
+    uint ndav;
     uint maxPreuTotal;
     uint maxPreuJug;
     vector<vector<Player>> pos_jug;
 
     Tactic(uint n1, uint n2, uint n3, uint T, uint J, const vector<Player>& players) :
-        goal(1), ndef(n1), nmid(n2), nstr(n3), maxPreuTotal(T), maxPreuJug(J) {
+        npor(1), ndef(n1), nmig(n2), ndav(n3), maxPreuTotal(T), maxPreuJug(J) {
         Initialize(players);
     }
 
@@ -61,20 +61,24 @@ public:
         pos_jug = GetPositionedPlayers(players);
     }
 
-    //Fem vector de vector de def, mid i str respectivament
+    //Fem vector de vector de por, def, mig i dav respectivament
     vector<vector<Player>> GetPositionedPlayers(const vector<Player>& players) {
         vector<vector<Player>> pos_jug(3);
 
         for (const auto& player : players) {
             if (player.price <= maxPreuJug) {
-                if (player.position == "def") {
+                if (player.position == "por") {
                     pos_jug[0].push_back(player);
                 }
-                else if (player.position == "mid") {
+                else if (player.position == "def") {
                     pos_jug[1].push_back(player);
                 }
-                else {
+                
+                else if (player.position == "mig") {
                     pos_jug[2].push_back(player);
+                }
+                else {
+                    pos_jug[3].push_back(player);
                 }
             }
         }
@@ -91,9 +95,10 @@ public:
 
     //Funció per saber el nx que li pertoca a cada posició. pos=0 n1; pos=1  n2; pos=2 n3.
     uint getPlayersCount(uint pos_index) const {
-        if (pos_index == 0) return ndef;
-        else if (pos_index == 1) return nmid;
-        else if (pos_index == 2) return nstr;
+        if (pos_index == 0) return npor;
+        else if (pos_index == 1) return ndef;
+        else if (pos_index == 2) return nmig;
+        else if (pos_index == 3) return ndav;
         else return 0;
     }
 };
@@ -128,8 +133,8 @@ vector<Player> greedy(const Tactic& tactic) {
     uint PreuReal = 0;
 
     for (uint pos_index = 0; pos_index < 3; ++pos_index) {
-        int c = 0; // Count of selected players for the current position
-        int i = 0; // Index to iterate over players
+        int c = 0; // Contador de jugadors afegits en aqiuesta posició
+        int i = 0; // Index que recorre jugadors d'aquesta posició
 
         while (c < tactic.getPlayersCount(pos_index) && i < tactic.pos_jug[pos_index].size()) {
             if (PreuReal + tactic.pos_jug[pos_index][i].price <= tactic.maxPreuTotal) {
