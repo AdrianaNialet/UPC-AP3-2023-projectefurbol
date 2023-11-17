@@ -63,7 +63,7 @@ public:
 
     //Fem vector de vector de por, def, mig i dav respectivament
     vector< vector<Player> > GetPositionedPlayers(const vector<Player>& players) {
-        vector< vector<Player> > pos_jug(3);
+        vector< vector<Player> > pos_jug(4);
 
         for (const auto& player : players) {
             if (player.price <= maxPreuJug) {
@@ -132,7 +132,7 @@ vector<Player> greedy(const Tactic& tactic) {
     vector<Player> res;
     uint PreuReal = 0;
 
-    for (uint pos_index = 0; pos_index < 3; ++pos_index) {
+    for (uint pos_index = 0; pos_index < 4; ++pos_index) {
         int c = 0; // Contador de jugadors afegits en aqiuesta posició
         int i = 0; // Index que recorre jugadors d'aquesta posició
 
