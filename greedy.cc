@@ -10,6 +10,7 @@
 #include <ctime>
 #include <iomanip>
 #include <chrono>
+#include <map>
 
 using namespace std;
 
@@ -111,8 +112,8 @@ vector<Player> readPlayers(const string& filename) {
     in.close();
     return players;
 }
-
-void displayTeamSelection(const vector<Player>& selplayers) {
+/*
+void displayTeamSelection(const vector<Player>& selplayers, ofstream &output) {
     //Arupa els jugadors seleccionats per posició
     unordered_map<string, vector<string>> groupedPlayers;
     int totalPoints = 0;
@@ -124,25 +125,25 @@ void displayTeamSelection(const vector<Player>& selplayers) {
         totalPrice += player.price;
     }
 
-    const vector<string> positionsOrder = {"por", "def", "mig", "dav"};
+    const vector<string> positionsOrder = {"POR", "DEF", "MIG", "DAV"};
     for (const auto& pos : positionsOrder) {
         auto it = groupedPlayers.find(pos);
         if (it != groupedPlayers.end()) {
-            cout << it->first << ": ";
+            output << it->first << ": ";
             for (size_t i = 0; i < it->second.size(); ++i) {
-                cout << it->second[i];
+                output << it->second[i];
                 if (i < it->second.size() - 1) {
-                    cout << ";";
+                    output << ";";
                 }
             }
-            cout << endl;
+            output << endl;
         }
     }
 
-    cout << "Total Points: " << totalPoints << endl;
-    cout << "Total Price: " << totalPrice << endl;
+    output << "Punts: " << totalPoints << endl;
+    output << "Preu: " << totalPrice << endl;
 }
-
+*/
 
 vector<Player> greedy(const Tactic& tactic) {
     vector<Player> res;
@@ -166,8 +167,8 @@ vector<Player> greedy(const Tactic& tactic) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 3) {
-        cout << "Syntax: " << argv[0] << " data_base.txt formation.txt" << endl;
+    if (argc != 4) {
+        cout << "Syntax: " << argv[0] << " data_base.txt formation.txt output.txt" << endl;
         exit(1);
     }
 
@@ -196,12 +197,38 @@ int main(int argc, char** argv) {
     //Atura el cronometre
     auto stop = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-
+    
     double seconds = duration.count() / 1e6;
-    cout << "Time: " << seconds << " seconds" << endl;
+
+    unordered_map<string, vector<string>> groupedPlayers;
+    int totalPoints = 0;
+    int totalPrice = 0;
+
+    for (const auto& player : res) {
+        groupedPlayers[player.position].push_back(player.name);
+        totalPoints += player.points;
+        totalPrice += player.price;
+    }
 
     //Mostra el resultat
-    displayTeamSelection(res);
+    ofstream out(argv[3]);
+    out << "Time: " << seconds << " seconds" << endl;
+    
+    //Agrupa els jugadors seleccionats per posició
+    const vector<string> positionsOrder = {"por", "def", "mig", "dav"};
+    for (const auto& pos : positionsOrder) {
+        out << char(pos[0]-32) << char(pos[1]-32) << char(pos[2]-32) << ": ";
+        for (const auto& player : res) {
+            if (player.position == pos) {
+                out << player.name << ";";
+            }
+        }
+        out << endl;
+    }
 
+    out << "Punts: " << totalPoints << endl;
+    out << "Preu: " << totalPrice << endl;
+    out.close();
     return 0;
 }
+
