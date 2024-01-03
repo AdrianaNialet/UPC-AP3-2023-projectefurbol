@@ -1,0 +1,183 @@
+/*PROJECTE1. Cerca exhaustiva (anar buscant millors respostes)
+Temps límit 3 mínuts; pet tant enlloc de guardar la resposta en una variable, anar-la imprimint
+i sobreescrivint.
+
+Amb temps, dona la solució óptima.*/
+
+// 1.Busca totes les permutacions però no agafa els jugadors aleatòriament sinó que comença per aquells
+//que donen més punts
+
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <algorithm>
+#include <cassert>
+#include <ctime>
+#include <iomanip>
+
+using namespace std;
+
+class Player {
+public:
+    int id;
+    string name;
+    string position;
+    int price;
+    string club;
+    int points;
+
+    Player(int ident, const string& n, const string& pos, int pr, const string& c, int p) :
+        id(ident), name(n), position(pos), price(pr), club(c), points(p) {}
+};
+
+class Tactic {
+public:
+    uint npor;
+    uint ndef;
+    uint nmig;
+    uint ndav;
+    uint maxPreuTotal;
+    uint maxPreuJug;
+    vector< vector<Player> > pos_jug;
+
+    Tactic(uint n1, uint n2, uint n3, uint T, uint J, const vector<Player>& players) :
+        npor(1), ndef(n1), nmig(n2), ndav(n3), maxPreuTotal(T), maxPreuJug(J) {
+        Initialize(players);
+    }
+
+    void Initialize(const vector<Player>& players) {
+        pos_jug = GetPositionedPlayers(players);
+    }
+
+     //Fem vector de vector de por, def, mig i dav respectivament
+    vector< vector<Player> > GetPositionedPlayers(const vector<Player>& players) {
+        vector< vector<Player> > pos_jug(4);
+
+        for (const auto& player : players) {
+            if (player.price <= maxPreuJug) {
+                if (player.position == "por") {
+                    pos_jug[0].push_back(player);
+                }
+                else if (player.position == "def") {
+                    pos_jug[1].push_back(player);
+                }
+                else if (player.position == "mig") {
+                    pos_jug[2].push_back(player);
+                }
+                else {
+                    pos_jug[3].push_back(player);
+                }
+            }
+        }
+
+        for (auto& pos_players : pos_jug) {
+            sort(pos_players.begin(), pos_players.end(), [](const Player& a, const Player& b) {
+                return a.points > b.points;
+            });
+        }
+
+        return pos_jug;
+    }
+
+    //Funció per saber el nx que li pertoca a cada posició. pos=0 n1; pos=1  n2; pos=2 n3.
+    uint getPlayersCount(uint pos_index) const {
+        if (pos_index == 0) return npor;
+        else if (pos_index == 1) return ndef;
+        else if (pos_index == 2) return nmig;
+        else if (pos_index == 3) return ndav;
+        else return 0;
+    }
+};
+
+//Crear vector dels jugadors
+vector<Player> readPlayers(const string& filename) {
+    vector<Player> players;
+    ifstream in(filename);
+
+    while (!in.eof()) {
+        string name, position, team;
+        int price, points;
+        getline(in, name, ';');
+        if (name == "") break;
+        getline(in, position, ';');
+        in >> price;
+        char aux; in >> aux;
+        getline(in, team, ';');
+        in >> points;
+        string aux2;
+        getline(in, aux2);
+
+        players.push_back(Player(players.size(), name, position, price, team, points));
+    }
+
+    in.close();
+    return players;
+}
+
+
+void escriu(const vector<Player>& res, uint PreuReal, uint PuntsReals) {
+    for (const auto& player : res) {
+        cout << player.name << "(id " << player.id << ") price = " << player.price << " points = "
+             << player.points << player.position << endl;
+    }
+    cout << PreuReal << endl;
+    cout << PuntsReals << endl;
+}
+
+
+void exhaustiveSearch(const Tactic& tactic) {
+    vector<Player> res;
+    vector< vector<bool> > JugAgafat;  //Vector de si hem agafat o no un jugador
+    for (uint i = 0; i <= 3; i++) {
+        JugAgafat.push_back(vector<bool>(tactic.getPlayersCount(i), false));
+    }
+
+    exhaustiveSearch(res, tactic, JugAgafat, 0, 0, 0, 0);
+}
+
+
+void exhaustiveSearch(vector<Player>& res, const Tactic& tactic, vector< vector<bool> >& JugAgafat,
+                      uint pos_index, int c, uint& MaxPunts, uint PreuReal, uint PuntsReals) {
+    if (tactic.maxPreuTotal < PreuReal) return;
+
+    if (res.size() == 11) {
+        if (PuntsReals >= MaxPunts) {
+            MaxPunts = PuntsReals;
+            escriu(res, PreuReal, PuntsReals);
+        }
+        return;
+    }
+
+    for (int i = 0; i < tactic.pos_jug[pos_index].size(); ++i) {
+        if (!JugAgafat[pos_index][i]) {
+            res.push_back(tactic.pos_jug[pos_index][i]);
+            JugAgafat[pos_index][i] = true;
+            PreuReal += tactic.pos_jug[pos_index][i].price;
+            PuntsReals += tactic.pos_jug[pos_index][i].points;
+            c += 1;
+
+            if (c < tactic.getPlayersCount(pos_index)-1) {
+                exhaustiveSearch(res, tactic, JugAgafat, pos_index, c, MaxPunts, PreuReal, PuntsReals);
+            } else {
+                exhaustiveSearch(res, tactic, JugAgafat, pos_index + 1, 0, MaxPunts, PreuReal, PuntsReals);
+            }
+
+            res.pop_back();
+            JugAgafat[pos_index][i] = false;
+            PreuReal -= tactic.pos_jug[pos_index][i].price;
+            PuntsReals -= tactic.pos_jug[pos_index][i].points;
+        }
+    }
+}
+
+
+int main(int argc, char** argv) {
+    if (argc != 3) {
+        cout << "Syntax: " << argv[0] << " data_base.txt" << endl;
+        exit(1);
+    }
+
+    vector<Player> players = readPlayers(argv[1]);
+    Tactic tactic = readTactic(argv[2], players);  
+    vector<Player> res = exhaustiveSearch(tactic);
+}
