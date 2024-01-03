@@ -89,6 +89,18 @@ public:
     }
 };
 
+
+Tactic  readTactic(const string& filename, const vector<Player>& players) {
+    ifstream in(filename);
+        uint n1, n2, n3, T, J;
+        in >> n1 >> n2 >> n3 >> T >> J;
+        Tactic tactic(n1, n2, n3, T, J, players);
+
+    in.close();
+    return tactic;
+}
+
+
 //Crear vector dels jugadors
 vector<Player> readPlayers(const string& filename) {
     vector<Player> players;
@@ -125,19 +137,8 @@ void escriu(const vector<Player>& res, uint PreuReal, uint PuntsReals) {
 }
 
 
-void exhaustiveSearch(const Tactic& tactic) {
-    vector<Player> res;
-    vector< vector<bool> > JugAgafat;  //Vector de si hem agafat o no un jugador
-    for (uint i = 0; i <= 3; i++) {
-        JugAgafat.push_back(vector<bool>(tactic.getPlayersCount(i), false));
-    }
-
-    exhaustiveSearch(res, tactic, JugAgafat, 0, 0, 0, 0);
-}
-
-
 void exhaustiveSearch(vector<Player>& res, const Tactic& tactic, vector< vector<bool> >& JugAgafat,
-                      uint pos_index, int c, uint& MaxPunts, uint PreuReal, uint PuntsReals) {
+                      uint pos_index, int c, uint MaxPunts, uint PreuReal, uint PuntsReals) {
     if (tactic.maxPreuTotal < PreuReal) return;
 
     if (res.size() == 11) {
@@ -178,6 +179,12 @@ int main(int argc, char** argv) {
     }
 
     vector<Player> players = readPlayers(argv[1]);
-    Tactic tactic = readTactic(argv[2], players);  
-    vector<Player> res = exhaustiveSearch(tactic);
+    Tactic tactic = readTactic(argv[2], players);
+    vector<Player> res;
+    vector< vector<bool> > JugAgafat; //Vector de si hem agafat o no un jugador
+    for (uint i = 0; i <= 3; i++) {
+        JugAgafat.push_back(vector<bool>(tactic.getPlayersCount(i), false));
+    } 
+
+    exhaustiveSearch(res, tactic, JugAgafat, 0, 0, 0, 0, 0);
 }
