@@ -138,7 +138,7 @@ void escriu(const vector<Player>& res, uint PreuReal, uint PuntsReals) {
 
 
 void exhaustiveSearch(vector<Player>& res, const Tactic& tactic, vector< vector<bool> >& JugAgafat,
-                      uint pos_index, int c, uint MaxPunts, uint PreuReal, uint PuntsReals) {
+                      uint pos_index, int c, uint& MaxPunts, uint PreuReal, uint PuntsReals) {
     if (tactic.maxPreuTotal < PreuReal) return;
 
     if (res.size() == 11) {
@@ -157,7 +157,7 @@ void exhaustiveSearch(vector<Player>& res, const Tactic& tactic, vector< vector<
             PuntsReals += tactic.pos_jug[pos_index][i].points;
             c += 1;
 
-            if (c < tactic.getPlayersCount(pos_index)-1) {
+            if (c < tactic.getPlayersCount(pos_index)) {
                 exhaustiveSearch(res, tactic, JugAgafat, pos_index, c, MaxPunts, PreuReal, PuntsReals);
             } else {
                 exhaustiveSearch(res, tactic, JugAgafat, pos_index + 1, 0, MaxPunts, PreuReal, PuntsReals);
@@ -167,6 +167,7 @@ void exhaustiveSearch(vector<Player>& res, const Tactic& tactic, vector< vector<
             JugAgafat[pos_index][i] = false;
             PreuReal -= tactic.pos_jug[pos_index][i].price;
             PuntsReals -= tactic.pos_jug[pos_index][i].points;
+            c -= 1;
         }
     }
 }
@@ -180,11 +181,15 @@ int main(int argc, char** argv) {
 
     vector<Player> players = readPlayers(argv[1]);
     Tactic tactic = readTactic(argv[2], players);
+
     vector<Player> res;
     vector< vector<bool> > JugAgafat; //Vector de si hem agafat o no un jugador
-    for (uint i = 0; i <= 3; i++) {
-        JugAgafat.push_back(vector<bool>(tactic.getPlayersCount(i), false));
-    } 
-
-    exhaustiveSearch(res, tactic, JugAgafat, 0, 0, 0, 0, 0);
+    for (const auto& pos_players : tactic.pos_jug) {
+        JugAgafat.push_back(vector<bool>(pos_players.size(), false));
+    }
+    uint MaxPunts = 0;
+    uint PreuReal = 0;
+    uint PuntsReals = 0;
+    exhaustiveSearch(res, tactic, JugAgafat, 0, 0, MaxPunts, PreuReal, PuntsReals);
 }
+
