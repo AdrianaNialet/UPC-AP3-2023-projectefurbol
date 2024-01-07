@@ -184,10 +184,6 @@ vector<Player> constructGreedySolution(const Tactic& tactic, std::default_random
 }
 
 
-
-
-
-
 vector<Player> localSearchRecursive(const Tactic& tactic, vector<Player>& currentSolution, size_t positionIndex, int currentTotalPoints, int currentTotalPrice, vector<Player>& bestSolution, int& bestTotalPoints, int& bestTotalPrice);
 
 vector<Player> localSearch(const Tactic& tactic, vector<Player>& currentSolution) {
