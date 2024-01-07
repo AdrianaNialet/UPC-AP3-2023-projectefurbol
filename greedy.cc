@@ -1,4 +1,4 @@
-//1. Ordenar els jugadors segons els punts i posició (Aquí ja eliminem aquells jugadors q no ens podem permetre)
+//1. Ordenar els jugadors segons els punts i posició (Aquí ja eliminem aquells jugadors que no ens podem permetre)
 
 //2. Escollir el jugador per ordre de més punts i sempre i quan no superem preu total
 
@@ -9,8 +9,7 @@
 #include <cassert>
 #include <ctime>
 #include <iomanip>
-#include <chrono>
-#include <map>
+#include <string>
 
 using namespace std;
 
@@ -35,7 +34,7 @@ public:
     uint ndav;
     uint maxPreuTotal;
     uint maxPreuJug;
-    vector<vector<Player>> pos_jug;
+    vector<Player> pos_jug;
 
     Tactic(uint n1, uint n2, uint n3, uint T, uint J, const vector<Player>& players) :
         npor(1), ndef(n1), nmig(n2), ndav(n3), maxPreuTotal(T), maxPreuJug(J) {
@@ -47,35 +46,28 @@ public:
     }
 
     //Fem vector de vector de por, def, mig i dav respectivament
-    vector<vector<Player>> GetPositionedPlayers(const vector<Player>& players) {
-        vector<vector<Player>> pos_jug(4);
+    vector<Player> GetPositionedPlayers(const vector<Player>& players) {
 
+        // Ordena els jugadors descendentment segons els punts i preu
         for (const auto& player : players) {
-            if (player.price <= maxPreuJug) {
-                if (player.position == "por") {
-                    pos_jug[0].push_back(player);
-                }
-                else if (player.position == "def") {
-                    pos_jug[1].push_back(player);
-                }
-                
-                else if (player.position == "mig") {
-                    pos_jug[2].push_back(player);
-                }
-                else {
-                    pos_jug[3].push_back(player);
-                }
+            if (player.price <= maxPreuJug && ((player.points > 0) || (player.points == 0 && player.price == 0))) {
+                pos_jug.push_back(player);
             }
         }
 
-        //Ordena jugadors descendetment segons els punts
-        for (auto& pos_players : pos_jug) {
-            sort(pos_players.begin(), pos_players.end(), [](const Player& a, const Player& b) {
-                return a.points > b.points;
-            });
-        }
+        sort(pos_jug.begin(), pos_jug.end(), [](const Player& a, const Player& b) {
+            if (a.points == b.points) return a.price < b.price;
+            return a.points > b.points;
+        });
 
         return pos_jug;
+    }
+
+    uint getPlayersPosition(string pos_index) const {
+        if (pos_index == "por") return 0;
+        else if (pos_index == "def") return 1;
+        else if (pos_index == "mig") return 2;
+        else if (pos_index == "dav") return 3;
     }
 
     //Funció per saber el nx que li pertoca a cada posició. pos=0 n1; pos=1  n2; pos=2 n3.
@@ -112,123 +104,71 @@ vector<Player> readPlayers(const string& filename) {
     in.close();
     return players;
 }
-/*
-void displayTeamSelection(const vector<Player>& selplayers, ofstream &output) {
-    //Arupa els jugadors seleccionats per posició
-    unordered_map<string, vector<string>> groupedPlayers;
-    int totalPoints = 0;
-    int totalPrice = 0;
 
-    for (const auto& player : selplayers) {
-        groupedPlayers[player.position].push_back(player.name);
-        totalPoints += player.points;
-        totalPrice += player.price;
-    }
+Tactic readTactic(const string& filename, const vector<Player>& players) {
+    ifstream in(filename);
+        uint n1, n2, n3, T, J;
+        in >> n1 >> n2 >> n3 >> T >> J;
+        Tactic tactic(n1, n2, n3, T, J, players);
 
-    const vector<string> positionsOrder = {"POR", "DEF", "MIG", "DAV"};
-    for (const auto& pos : positionsOrder) {
-        auto it = groupedPlayers.find(pos);
-        if (it != groupedPlayers.end()) {
-            output << it->first << ": ";
-            for (size_t i = 0; i < it->second.size(); ++i) {
-                output << it->second[i];
-                if (i < it->second.size() - 1) {
-                    output << ";";
-                }
-            }
-            output << endl;
-        }
-    }
+    in.close();
+    return tactic;
 
-    output << "Punts: " << totalPoints << endl;
-    output << "Preu: " << totalPrice << endl;
 }
-*/
+
 
 vector<Player> greedy(const Tactic& tactic) {
     vector<Player> res;
     uint PreuReal = 0;
+    vector<uint> players_count(4, 0);  // Count of players for each position (0 for por, 1 for def, 2 for mig, 3 for dav)
 
-    for (uint pos_index = 0; pos_index < 4; ++pos_index) {
-        int c = 0; //Contador de jugadors afegits en aqiuesta posició
-        int i = 0; //Index que recorre jugadors d'aquesta posició
+    int i = 0; // Index that iterates over players
+    cout << tactic.pos_jug.size() << endl;
+    while (i < tactic.pos_jug.size()) {
+        uint positionIndex = tactic.getPlayersPosition(tactic.pos_jug[i].position);
 
-        while (c < tactic.getPlayersCount(pos_index) && i < tactic.pos_jug[pos_index].size()) {
-            if (PreuReal + tactic.pos_jug[pos_index][i].price <= tactic.maxPreuTotal) {
-                res.push_back(tactic.pos_jug[pos_index][i]);
-                PreuReal += tactic.pos_jug[pos_index][i].price;
-                c += 1;
+        if (players_count[positionIndex] < tactic.getPlayersCount(positionIndex) && PreuReal + tactic.pos_jug[i].price <= tactic.maxPreuTotal) {
+            res.push_back(tactic.pos_jug[i]);
+            PreuReal += tactic.pos_jug[i].price;
+            players_count[positionIndex] += 1;
+
+            if (res.size() == 11) {
+                return res;
             }
-            i += 1;
         }
+        i += 1;
     }
-
     return res;
 }
 
+
 int main(int argc, char** argv) {
-    if (argc != 4) {
-        cout << "Syntax: " << argv[0] << " data_base.txt formation.txt output.txt" << endl;
+    if (argc != 3) {
+        cout << "Sintaxi: " << argv[0] << " data_base.txt" << endl;
         exit(1);
     }
 
-    //Inici cronometre
-    auto start = chrono::high_resolution_clock::now();
-
-    //Crea vector dels jugadors
+    // Crear vector jugadors
     vector<Player> players = readPlayers(argv[1]);
 
-    //Llegeix la tactica del fitxer
-    ifstream formationFile(argv[2]);
-    if (!formationFile.is_open()) {
-        cerr << "Error opening formation file." << endl;
-        exit(1);
-    }
+    // Llegir i definir tàctica
+    Tactic tactic = readTactic(argv[2], players);
 
-    uint n1, n2, n3, T, J;
-    formationFile >> n1 >> n2 >> n3 >> T >> J;
-    formationFile.close();
-
-    Tactic tactic(n1, n2, n3, T, J, players);
-
-    //Algoritme greedy
+    // Fer greedy
     vector<Player> res = greedy(tactic);
 
-    //Atura el cronometre
-    auto stop = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-    
-    double seconds = duration.count() / 1e6;
+     for (const auto& player : tactic.pos_jug) {
+        cout << player.name << "(id " << player.id << ") preu = " << player.price << " punts = " << player.points << player.position << endl;
+    }
 
-    unordered_map<string, vector<string>> groupedPlayers;
-    int totalPoints = 0;
-    int totalPrice = 0;
-
+    // Imprimir el resultat
+    int preu = 0;
+    int punts = 0;
     for (const auto& player : res) {
-        groupedPlayers[player.position].push_back(player.name);
-        totalPoints += player.points;
-        totalPrice += player.price;
+        cout << player.name << "(id " << player.id << ") preu = " << player.price << " punts = " << player.points << player.position << endl;
+        preu += player.price;
+        punts += player.points;
     }
-
-    //Mostra el resultat
-    ofstream out(argv[3]);
-    out << "Time: " << seconds << " seconds" << endl;
-    
-    //Agrupa els jugadors seleccionats per posició
-    const vector<string> positionsOrder = {"por", "def", "mig", "dav"};
-    for (const auto& pos : positionsOrder) {
-        out << char(pos[0]-32) << char(pos[1]-32) << char(pos[2]-32) << ": ";
-        for (const auto& player : res) {
-            if (player.position == pos) {
-                out << player.name << ";";
-            }
-        }
-        out << endl;
-    }
-
-    out << "Punts: " << totalPoints << endl;
-    out << "Preu: " << totalPrice << endl;
-    out.close();
-    return 0;
+    cout << preu << endl;
+    cout << punts << endl;
 }
-
