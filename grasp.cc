@@ -10,6 +10,7 @@
 #include <tuple>
 #include <random>
 #include <iterator>
+#include <cmath>
 
 using namespace std;
 
@@ -128,8 +129,8 @@ vector<Player> localSearch(const Tactic& tactic, vector<Player>& currentSolution
 vector<Player> grasp(const Tactic& tactic, int maxIterations) {
     vector<Player> bestSolution;
 
-    std::random_device rd;
-    std::default_random_engine rng(rd());
+    random_device rd;
+    default_random_engine rng(rd());
 
     for (int iteration = 0; iteration < maxIterations; ++iteration) {
         vector<Player> currentSolution = constructGreedySolution(tactic, rng);
@@ -141,9 +142,16 @@ vector<Player> grasp(const Tactic& tactic, int maxIterations) {
 
         tuple<int, int> bestTotals = calculateTotalPointsAndPrice(bestSolution);
         int bestTotalPoints = get<0>(bestTotals);
-        int bestTotalPrice = get<1>(bestTotals);
 
-        if (currentTotalPoints > bestTotalPoints && currentTotalPrice <= tactic.maxPreuTotal) {
+        // Introduce a temperature parameter for the probabilistic acceptance criterion
+        double temperature = 1.0; // You can experiment with different values
+
+        // Calculate the probability of accepting a worse solution
+        double acceptanceProbability = exp((currentTotalPoints - bestTotalPoints) / temperature);
+
+        // Accept the new solution with the calculated probability
+        uniform_real_distribution<double> distribution(0.0, 1.0);
+        if (distribution(rng) < acceptanceProbability || (currentTotalPoints > bestTotalPoints && currentTotalPrice <= tactic.maxPreuTotal)) {
             bestSolution = currentSolution;
         }
     }
@@ -151,37 +159,41 @@ vector<Player> grasp(const Tactic& tactic, int maxIterations) {
     return bestSolution;
 }
 
-vector<Player> constructGreedySolution(const Tactic& tactic, std::default_random_engine& rng) {
+vector<Player> constructGreedySolution(const Tactic& tactic, default_random_engine& rng) {
     vector<Player> solution;
 
-    // Iterate through each position
     for (size_t i = 0; i < tactic.pos_jug.size(); ++i) {
         // Shuffle the order of players for the current position
         vector<Player> randomizedPlayers = tactic.pos_jug[i];
-        std::shuffle(randomizedPlayers.begin(), randomizedPlayers.end(), rng);
+        shuffle(randomizedPlayers.begin(), randomizedPlayers.end(), rng);
 
-        // Add players that satisfy the budget constraint
+        // Add players that satisfy the budget constraint and fill the required number for the position
+        int n = 0; // Number of players
         for (const Player& player : randomizedPlayers) {
             tuple<int, int> pointsAndPrice = calculateTotalPointsAndPrice(solution);
             int priceSolution = get<1>(pointsAndPrice);
 
-            // Check if adding the player satisfies the budget constraints and if the player's position is not already filled
+            // Check if adding the player satisfies the budget constraints and if the player's position is not already filled with the required number
             if (count_if(solution.begin(), solution.end(), [&player](const Player& p) {
                     return p.position == player.position;
-                }) < tactic.getPlayersCount(player.position) && priceSolution + player.price <= tactic.maxPreuTotal && player.price <= tactic.maxPreuJug) {
-
+                }) < tactic.getPlayersCount(i) && priceSolution + player.price <= tactic.maxPreuTotal && player.price <= tactic.maxPreuJug) {
+                
+                cout << tactic.getPlayersCount(i) << endl; // Number of players required for the position
                 solution.push_back(player);
+                n++;
+            }
 
-                // Check if we have added enough players for this position
-                if (solution.size() == tactic.getPlayersCount(player.position)) {
-                    break;
-                }
+            // Check if we have added enough players for this position
+            if (n == tactic.getPlayersCount(i)) {
+                break;
             }
         }
     }
 
     return solution;
 }
+
+
 
 
 vector<Player> localSearchRecursive(const Tactic& tactic, vector<Player>& currentSolution, size_t positionIndex, int currentTotalPoints, int currentTotalPrice, vector<Player>& bestSolution, int& bestTotalPoints, int& bestTotalPrice);
@@ -269,7 +281,7 @@ int main(int argc, char** argv) {
 
     Tactic tactic(n1, n2, n3, T, J, players);
 
-    vector<Player> bestSolution = grasp(tactic, 2);
+    vector<Player> bestSolution = grasp(tactic, 10000);
 
     auto stop = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
